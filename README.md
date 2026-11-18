@@ -2,9 +2,17 @@
 
 True Pixel 把放大过的像素画或 AI 生成的像素风图片，重建成可以直接用在游戏里的小尺寸透明 PNG。你可以指定角色的宽高、保留半透明边缘，或让所有可见像素只使用项目色板中的颜色。转换在本机完成，需要 Python 3.10+、Pillow 和 NumPy。
 
-<img src="examples/herbalist/preview.png" width="384" alt="银发药剂师，戴着绿帽，背篓里装着紫色草药。96×96 成品的放大预览。">
+## 示例 · 银发药剂师
 
-这位银发药剂师来自 `godot-lab` 实验 001，原项目称她为“银发采药师”。这里使用角色的 1024×1024 待机原图，保留原图构图，按实验的精灵画布规格重建为 **96×96**。二值透明去掉了轮廓外的半透明光晕，帽沿的浅色饰带和背篓里的紫花仍然清晰。[查看输入原图](examples/herbalist/input.png) · [下载 96×96 透明 PNG](examples/herbalist/native.png)
+这位银发药剂师来自 `godot-lab` 实验 001。左边是 **1024×1024 待机原图**，右边是 **96×96 像素重建图**。两边保留相同的取景和角色大小，方便对照帽沿、背篓和鞋尖的轮廓。
+
+![药剂师全身对比，左为原图，右为二值透明的 96×96 重建结果，两侧角色等大](examples/herbalist/comparison.png)
+
+**脸部细节**取自两图的同一位置。右侧区域在成品中只有 **24×18 像素**，用最近邻放大后，可以逐格对照刘海、眼睛高光和鼻尖的变化。
+
+![脸部细节对比，左为原图局部，右为相同区域的像素重建局部](examples/herbalist/detail-comparison.png)
+
+[查看透明原图](examples/herbalist/input.png) · [下载 96×96 透明 PNG](examples/herbalist/native.png)
 
 ## 安装为 AI 技能
 
