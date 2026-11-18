@@ -4,15 +4,19 @@ True Pixel 把放大过的像素画或 AI 生成的像素风图片，重建成�
 
 ## 示例 · 银发药剂师
 
-同一张来自 `godot-lab` 实验 001 的药剂师待机图，分别重建为 **96×96** 和 **192×192** 透明精灵。两版都针对眼线和嘴角做了局部取色。下图从左到右是原图、96×96 优化版和 192×192 优化版，角色等大显示。
+这位药剂师来自 `godot-lab` 实验 001。两种尺寸共用一张从原图选出的 **16 色色板**。左边是 1024×1024 原图，中间是 96×96 精灵，右边是 192×192 精灵，三列等大显示。
 
-![银发药剂师全身等大对比，从左到右为原图、96×96 优化版、192×192 优化版](examples/herbalist/comparison.png)
+![银发药剂师全身，原图与使用同一张 16 色色板的两种尺寸等大对照](examples/herbalist/comparison.png)
 
-**脸部细节。** 看眼白左缘和鼻尖下方：96 版用一格深色补回眼线、一格浅棕保留嘴点；192 版有更多像素描出眼形，眼线到眼白的过渡更细。下图截取三张图的同一位置，两份精灵均用最近邻放大。
+**脸部细节。** 96 版用一格墨色补回眼线，一格暖肤色保留嘴点。192 版有更多像素描出眼形。两份 PNG 都实际用齐了 16 种可见 RGB 颜色，透明背景另计，边缘采用二值透明。
 
-![同一脸部区域放大，从左到右为原图、96×96 优化版、192×192 优化版](examples/herbalist/detail-comparison.png)
+![眼线与嘴角的同位置放大对比，从左到右为原图、96×96 十六色版、192×192 十六色版](examples/herbalist/detail-comparison.png)
 
-[查看原图](examples/herbalist/input.png) · [96×96 优化版 PNG](examples/herbalist/refined.png) · [192×192 优化版 PNG](examples/herbalist/refined-192.png)
+[下载 96×96 精灵](examples/herbalist/refined.png) · [下载 192×192 精灵](examples/herbalist/refined-192.png) · [查看原图](examples/herbalist/input.png)
+
+**共用色板**为帽子和披风保留两级青绿，也为背篓里的绿叶和紫花分别留了色位。复用时，把下面的 PNG 传给 `--palette` 即可。[下载 16 色色板](examples/herbalist/palette-16.png)
+
+![药剂师专用的 16 色色板](examples/herbalist/palette-16.png)
 
 ## 安装为 AI 技能
 
@@ -32,11 +36,11 @@ True Pixel 把放大过的像素画或 AI 生成的像素风图片，重建成�
 git clone https://github.com/YiTongHu-SC/true-pixel.git
 cd true-pixel
 python -m pip install -r skills/true-pixel/requirements.txt
-python skills/true-pixel/scripts/true_pixel.py examples/herbalist/input.png out/herbalist-96 --size 96x96 --alpha binary --detail-point 53,37 --detail-point 58,42
-python skills/true-pixel/scripts/true_pixel.py examples/herbalist/input.png out/herbalist-192 --size 192x192 --alpha binary --detail-point 110,71 --detail-point 116,85
+python skills/true-pixel/scripts/true_pixel.py examples/herbalist/input.png out/herbalist-96 --size 96x96 --alpha binary --detail-point 53,37 --detail-point 58,42 --palette examples/herbalist/palette-16.png
+python skills/true-pixel/scripts/true_pixel.py examples/herbalist/input.png out/herbalist-192 --size 192x192 --alpha binary --detail-point 110,71 --detail-point 116,85 --palette examples/herbalist/palette-16.png
 ```
 
-两个输出目录各含一份原生尺寸的 `native.png` 和一份放大后的 `preview.png`。细节点坐标按各自的目标画布选取。省略 `--detail-point` 可生成对应尺寸的默认版，每次运行使用新的输出目录。
+两个输出目录各含一份原生尺寸的 `native.png` 和一份放大后的 `preview.png`。细节点坐标按各自的目标画布选取。保留 `--palette` 并省略两处 `--detail-point`，可对照同色板下的默认采样效果，每次运行使用新的输出目录。
 
 ## 选择尺寸、边缘和色板
 
