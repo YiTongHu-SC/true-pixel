@@ -4,15 +4,15 @@ True Pixel 把放大过的像素画或 AI 生成的像素风图片，重建成�
 
 ## 示例 · 银发药剂师
 
-这位银发药剂师来自 `godot-lab` 实验 001。三列依次是 1024×1024 原图、默认采样的 96×96 成品，以及在眼线与嘴角各指定一个细节点的 96×96 成品。角色等大显示。
+同一张来自 `godot-lab` 实验 001 的药剂师待机图，分别重建为 **96×96** 和 **192×192** 透明精灵。两版都针对眼线和嘴角做了局部取色。下图从左到右是原图、96×96 优化版和 192×192 优化版，角色等大显示。
 
-![银发药剂师全身，原图、默认采样、细节点采样等大对照](examples/herbalist/comparison.png)
+![银发药剂师全身等大对比，从左到右为原图、96×96 优化版、192×192 优化版](examples/herbalist/comparison.png)
 
-**先看眼白左缘，再看鼻尖下方。** 眼线所在格向右移 3 个源像素采样，恢复了一格深色。嘴角笔触在源图中占格面积很小，用接近该格平均色的浅棕色保留一格。前后两版只有这两个格子的 RGB 不同，透明轮廓和脚底位置相同。
+**脸部细节。** 看眼白左缘和鼻尖下方：96 版用一格深色补回眼线、一格浅棕保留嘴点；192 版有更多像素描出眼形，眼线到眼白的过渡更细。下图截取三张图的同一位置，两份精灵均用最近邻放大。
 
-![药剂师脸部同位置放大，右列恢复了眼线和一格浅棕嘴点](examples/herbalist/detail-comparison.png)
+![同一脸部区域放大，从左到右为原图、96×96 优化版、192×192 优化版](examples/herbalist/detail-comparison.png)
 
-[查看原图](examples/herbalist/input.png) · [下载默认版](examples/herbalist/native.png) · [下载细节版](examples/herbalist/refined.png)
+[查看原图](examples/herbalist/input.png) · [96×96 优化版 PNG](examples/herbalist/refined.png) · [192×192 优化版 PNG](examples/herbalist/refined-192.png)
 
 ## 安装为 AI 技能
 
@@ -32,10 +32,11 @@ True Pixel 把放大过的像素画或 AI 生成的像素风图片，重建成�
 git clone https://github.com/YiTongHu-SC/true-pixel.git
 cd true-pixel
 python -m pip install -r skills/true-pixel/requirements.txt
-python skills/true-pixel/scripts/true_pixel.py examples/herbalist/input.png out/herbalist --size 96x96 --alpha binary --detail-point 53,37 --detail-point 58,42
+python skills/true-pixel/scripts/true_pixel.py examples/herbalist/input.png out/herbalist-96 --size 96x96 --alpha binary --detail-point 53,37 --detail-point 58,42
+python skills/true-pixel/scripts/true_pixel.py examples/herbalist/input.png out/herbalist-192 --size 192x192 --alpha binary --detail-point 110,71 --detail-point 116,85
 ```
 
-打开 `out/herbalist/native.png` 取用成品，打开 `out/herbalist/preview.png` 检查细节。省略两个 `--detail-point` 参数即可复现默认版。每次运行使用新的输出目录。
+两个输出目录各含一份原生尺寸的 `native.png` 和一份放大后的 `preview.png`。细节点坐标按各自的目标画布选取。省略 `--detail-point` 可生成对应尺寸的默认版，每次运行使用新的输出目录。
 
 ## 选择尺寸、边缘和色板
 
