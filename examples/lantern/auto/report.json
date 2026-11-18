@@ -1,0 +1,90 @@
+{
+  "input_size": [
+    1254,
+    1254
+  ],
+  "alpha": "preserve",
+  "fit": null,
+  "palette": null,
+  "mode": "auto",
+  "canvas_size": [
+    1254,
+    1254
+  ],
+  "native_size": [
+    96,
+    46
+  ],
+  "x_candidates": [
+    {
+      "pitch": 13.094609258239036,
+      "offset": 11.724817040190988,
+      "score": 0.3247,
+      "supported_lines": 47
+    },
+    {
+      "pitch": 235.0,
+      "offset": 157.27400086804914,
+      "score": 0.243,
+      "supported_lines": 3
+    },
+    {
+      "pitch": 8.950151326795899,
+      "offset": 1.0043205793156984,
+      "score": 0.2417,
+      "supported_lines": 69
+    },
+    {
+      "pitch": 6.476312889312924,
+      "offset": 5.699377091174597,
+      "score": 0.2407,
+      "supported_lines": 88
+    },
+    {
+      "pitch": 6.975179501028519,
+      "offset": 3.05941190133518,
+      "score": 0.2399,
+      "supported_lines": 85
+    }
+  ],
+  "y_candidates": [
+    {
+      "pitch": 28.100751419525903,
+      "offset": 10.154003316312396,
+      "score": 0.3855,
+      "supported_lines": 34
+    },
+    {
+      "pitch": 26.437479630698306,
+      "offset": 19.849997883276536,
+      "score": 0.3743,
+      "supported_lines": 35
+    },
+    {
+      "pitch": 404.46389302970687,
+      "offset": 219.55729438298962,
+      "score": 0.3374,
+      "supported_lines": 3
+    },
+    {
+      "pitch": 13.6247343150453,
+      "offset": 1.7392179221308937,
+      "score": 0.2985,
+      "supported_lines": 54
+    },
+    {
+      "pitch": 13.217562232017986,
+      "offset": 7.219109576540036,
+      "score": 0.2602,
+      "supported_lines": 57
+    }
+  ],
+  "status": "review",
+  "issues": [
+    "x_weak_grid",
+    "x_regional_grid_disagreement",
+    "y_weak_grid",
+    "inconsistent_axis_scales"
+  ],
+  "preview_scale": 8
+}

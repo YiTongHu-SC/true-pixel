@@ -1,0 +1,33 @@
+{
+  "input_size": [
+    1254,
+    1254
+  ],
+  "alpha": "binary",
+  "fit": null,
+  "palette": null,
+  "mode": "specified",
+  "canvas_size": [
+    1254,
+    1254
+  ],
+  "native_size": [
+    48,
+    48
+  ],
+  "x_candidates": [
+    {
+      "pitch": 26.125,
+      "offset": 0
+    }
+  ],
+  "y_candidates": [
+    {
+      "pitch": 26.125,
+      "offset": 0
+    }
+  ],
+  "status": "ok",
+  "issues": [],
+  "preview_scale": 8
+}

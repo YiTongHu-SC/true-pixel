@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "primary_branch": "main",
+  "branch_prefix": "codex/",
+  "verification_mode": "local",
+  "push_remote": null,
+  "merge_method": "direct",
+  "authorization": {
+    "commit": false,
+    "merge": false,
+    "push": false
+  },
+  "validation_commands": [
+    "python -B -m unittest discover -s tests"
+  ]
+}

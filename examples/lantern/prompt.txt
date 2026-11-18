@@ -1,0 +1,1 @@
+A single inventory icon of a squat brass lantern with a small squared arch handle, amber glass, a bright one-cell glint and deep navy outlines. Retro hand-crafted pixel sprite, visibly chunky roughly 32x32 grid on square canvas. centered, modest clear padding, flat fills, no floor, no shadow, no text. Actual transparent background.
