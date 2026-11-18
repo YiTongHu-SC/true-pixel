@@ -2,9 +2,9 @@
 
 True Pixel 把放大过的像素画或 AI 生成的像素风图片，重建成可以直接用在游戏里的小尺寸透明 PNG。你可以指定角色的宽高、保留半透明边缘，或让所有可见像素只使用项目色板中的颜色。转换在本机完成，需要 Python 3.10+、Pillow 和 NumPy。
 
-![浣熊邮差，48×48 像素成品的 8 倍最近邻预览](examples/raccoon/preview.png)
+<img src="examples/herbalist/preview.png" width="384" alt="银发药剂师，戴着绿帽，背篓里装着紫色草药。96×96 成品的放大预览。">
 
-这只浣熊邮差的原图是 ImageGen 生成的 1254×1254 PNG。自动检测时，横纵两个方向的网格都不够清晰，因此这里按设计尺寸重建为 **48×48**，并使用二值透明。上图放大了 8 倍，方便看清眼睛、信封和邮包上的像素。[查看原图](examples/raccoon/input.png) · [下载 48×48 成品](examples/raccoon/native.png)
+这位银发药剂师来自 `godot-lab` 实验 001，原项目称她为“银发采药师”。这里使用角色的 1024×1024 待机原图，保留原图构图，按实验的精灵画布规格重建为 **96×96**。二值透明去掉了轮廓外的半透明光晕，帽沿的浅色饰带和背篓里的紫花仍然清晰。[查看输入原图](examples/herbalist/input.png) · [下载 96×96 透明 PNG](examples/herbalist/native.png)
 
 ## 安装为 AI 技能
 
@@ -14,7 +14,7 @@ True Pixel 把放大过的像素画或 AI 生成的像素风图片，重建成�
 
 **手动安装**也可以。克隆仓库，将整个 `skills/true-pixel` 目录复制到助手的技能目录。例如 Codex 的用户级路径是 `~/.agents/skills/true-pixel/`，复制后应能直接看到其中的 `SKILL.md`。在技能目录运行 `python -m pip install -r requirements.txt`，然后新开一个会话。
 
-安装后可以直接说：“用 true-pixel 把这张角色图重建为 48×48，背景透明，颜色限制在我附上的色板里。给我原生 PNG 和放大预览。”
+安装后可以直接说：“用 true-pixel 把这张角色图重建为 96×96，背景透明，颜色限制在我附上的色板里。给我原生 PNG 和放大预览。”
 
 ## 在命令行复现示例
 
@@ -24,10 +24,10 @@ True Pixel 把放大过的像素画或 AI 生成的像素风图片，重建成�
 git clone https://github.com/YiTongHu-SC/true-pixel.git
 cd true-pixel
 python -m pip install -r skills/true-pixel/requirements.txt
-python skills/true-pixel/scripts/true_pixel.py examples/raccoon/input.png out/raccoon --size 48x48 --alpha binary
+python skills/true-pixel/scripts/true_pixel.py examples/herbalist/input.png out/herbalist --size 96x96 --alpha binary
 ```
 
-打开 `out/raccoon/native.png` 取用成品，打开 `out/raccoon/preview.png` 检查细节。每次运行使用新的输出目录。
+打开 `out/herbalist/native.png` 取用成品，打开 `out/herbalist/preview.png` 检查细节。每次运行使用新的输出目录。
 
 ## 选择尺寸、边缘和色板
 
