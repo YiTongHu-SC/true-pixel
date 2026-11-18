@@ -2,8 +2,8 @@
   "schema_version": 1,
   "primary_branch": "main",
   "branch_prefix": "codex/",
-  "verification_mode": "local",
-  "push_remote": null,
+  "verification_mode": "remote",
+  "push_remote": "origin",
   "merge_method": "direct",
   "authorization": {
     "commit": false,
