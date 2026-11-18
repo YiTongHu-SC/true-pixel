@@ -158,7 +158,65 @@ def sample_cell(cell):
     return (*selected, coverage)
 
 
-def reconstruct(im, xs, ys, alpha_mode, palette):
+def detail_point(value):
+    if not re.fullmatch(r"[0-9]+,[0-9]+", value):
+        raise argparse.ArgumentTypeError("use zero-based target X,Y, for example 12,8")
+    return tuple(map(int, value.split(",")))
+
+
+def refine_point(data, xs, ys, x, y, result):
+    """Test nearby sampling positions for one artist-selected feature pixel."""
+    x0, x1 = map(int, xs[x:x + 2])
+    y0, y1 = map(int, ys[y:y + 2])
+    w, h = x1 - x0, y1 - y0
+    baseline = result[y, x, :3].astype(float)
+    record = dict(point=[x, y], before=baseline.astype(int).tolist())
+    if result[y, x, 3] == 0:
+        return dict(record, selected="transparent", trials=[])
+
+    cell = data[y0:y1, x0:x1]
+    visible = cell[cell[:, :, 3] > 0]
+    # Do not promote the RGB of a nearly invisible fringe to a solid mark.
+    alpha = visible[:, 3]
+    colors = visible[alpha >= 0.5 * alpha.max(), :3].astype(float)
+
+    def closest_source_color(color):
+        return colors[np.square(colors - color).sum(axis=1).argmin()]
+
+    # The ordinary vote can miss a thin mark. The unshifted coverage gives
+    # its direction and strength. At an explicit detail point, give the
+    # missing contrast twice its area-average weight when ranking candidates.
+    mean = np.average(visible[:, :3], axis=0, weights=alpha.astype(float))
+    target = baseline + 2 * (mean - baseline)
+    options = [("baseline", baseline)]
+    trials = []
+    step_x, step_y = (w + 2) // 4, (h + 2) // 4
+    height, width = data.shape[:2]
+    seen = set()
+    for dy in (0, -step_y, step_y):
+        for dx in (0, -step_x, step_x):
+            left = min(max(x0 + dx, 0), width - w)
+            top = min(max(y0 + dy, 0), height - h)
+            if (left, top) in seen:
+                continue
+            seen.add((left, top))
+            sampled = sample_cell(data[top:top + h, left:left + w])
+            offset = [left - x0, top - y0]
+            if sampled[3] == 0:
+                trials.append(dict(offset=offset, rgb=None))
+                continue
+            # Restrict candidates to colors present in this target cell.
+            color = closest_source_color(sampled[:3])
+            trials.append(dict(offset=offset, rgb=color.astype(int).tolist()))
+            options.append((offset, color))
+    options.append(("coverage", closest_source_color(mean)))
+    selected, color = min(options, key=lambda item: np.square(item[1] - target).sum())
+    result[y, x, :3] = color
+    return dict(record, selected=selected, before_palette=color.astype(int).tolist(),
+                trials=trials)
+
+
+def reconstruct(im, xs, ys, alpha_mode, palette, points=(), detail_report=None):
     data = np.asarray(im)
     if len(xs) == im.width + 1 and len(ys) == im.height + 1:
         result = data.copy()
@@ -171,6 +229,10 @@ def reconstruct(im, xs, ys, alpha_mode, palette):
         result[:, :, 3] = (result[:, :, 3] >= 128) * 255
     visible = result[:, :, 3] > 0
     result[~visible] = 0
+    for x, y in points:
+        detail = refine_point(data, xs, ys, x, y, result)
+        if detail_report is not None:
+            detail_report.append(detail)
     if palette is not None and visible.any():
         rgb, inv = np.unique(result[visible, :3], axis=0, return_inverse=True)
         mapped = np.empty_like(rgb)
@@ -201,6 +263,11 @@ def run(args):
     original_size = im.size
     if args.fit and not args.size:
         raise ValueError("--fit requires --size")
+    if args.detail_point and not args.size:
+        raise ValueError("--detail-point requires --size")
+    points = list(dict.fromkeys(args.detail_point))
+    if any(x >= args.size[0] or y >= args.size[1] for x, y in points):
+        raise ValueError("detail point outside target canvas")
     report = dict(input_size=original_size, alpha=args.alpha, fit=args.fit,
                   palette=args.palette.name if args.palette else None)
     issues = []
@@ -236,7 +303,12 @@ def run(args):
         overlay.alpha_composite(guides)
         overlay.save(dest / "grid.png")
         if inferred:
-            native = reconstruct(im, xs, ys, args.alpha, palette)
+            details = []
+            native = reconstruct(im, xs, ys, args.alpha, palette, points, details)
+            if details:
+                for item in details:
+                    item["output"] = list(native.getpixel(tuple(item["point"])))
+                report["detail_points"] = details
             native.save(dest / ("candidate.png" if issues else "native.png"))
             scale = min(8, max(1, 2048 // max(native.size)))
             native.resize((native.width * scale, native.height * scale),
@@ -252,6 +324,8 @@ def main():
     p.add_argument("input", type=Path)
     p.add_argument("output", type=Path, help="new result directory")
     p.add_argument("--size", type=native_size)
+    p.add_argument("--detail-point", type=detail_point, action="append", default=[],
+                   metavar="X,Y", help="refine RGB at one target pixel; repeat for more points")
     p.add_argument("--fit", choices=["crop", "pad"])
     p.add_argument("--alpha", choices=["preserve", "binary"], default="preserve")
     p.add_argument("--palette", type=Path, help="PNG swatch with up to 256 visible colors")

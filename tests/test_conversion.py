@@ -115,6 +115,61 @@ class Conversion(unittest.TestCase):
                      "--size", "8x8", "--fit", "crop")
         self.assertTrue((self.output() == [11, 22, 33, 160]).all())
 
+    def test_herbalist_detail_points(self):
+        example = Path(__file__).resolve().parents[1] / "examples/herbalist/input.png"
+        with Image.open(example) as image:
+            settings = ("--size", "96x96", "--alpha", "binary")
+            self.convert(image, *settings)
+            baseline = self.output()
+            self.dest = self.root / "refined"
+            report = self.convert(image, *settings, "--detail-point", "53,37",
+                                  "--detail-point", "58,42")
+        refined = self.output()
+        np.testing.assert_array_equal(refined[:, :, 3], baseline[:, :, 3])
+        unmarked = np.ones(baseline.shape[:2], dtype=bool)
+        unmarked[37, 53] = unmarked[42, 58] = False
+        np.testing.assert_array_equal(refined[unmarked], baseline[unmarked])
+
+        # The left eye stroke is distinct from both its white and the right stroke.
+        self.assertLess(int(refined[37, 53, :3].max()), 100)
+        self.assertGreater(int(refined[37, 55, :3].min()), 175)
+        self.assertLess(int(refined[37, 56, :3].max()), 100)
+        # The dot at the mouth is slightly darker than adjacent skin.
+        skin = refined[42, 57, :3].astype(float)
+        mouth = refined[42, 58, :3].astype(float)
+        contrast = (skin - mouth) @ [0.2126, 0.7152, 0.0722]
+        self.assertGreater(contrast, 15)
+        self.assertLess(contrast, 60)
+        for detail in report["detail_points"]:
+            self.assertGreater(len(detail["trials"]), 1)
+
+    def test_palette_still_applies_at_detail_points(self):
+        palette = self.root / "swatches.png"
+        swatches = Image.new("RGB", (2, 1))
+        swatches.putdata([(24, 20, 16), (255, 239, 213)])
+        swatches.save(palette)
+        image = Image.new("RGBA", (16, 16), (200, 170, 140, 180))
+        image.paste((65, 48, 40, 180), (6, 0, 9, 16))
+        self.convert(image, "--size", "2x2", "--detail-point", "0,0",
+                     "--palette", palette)
+        output = self.output()
+        self.assertTrue((output[:, :, 3] == 180).all())
+        self.assertTrue(set(map(tuple, output[:, :, :3].reshape(-1, 3))) <=
+                        {(24, 20, 16), (255, 239, 213)})
+
+    def test_detail_point_requires_target_coordinates(self):
+        for settings in [(), ("--size", "12x9")]:
+            with self.subTest(settings=settings):
+                self.convert(reference(), *settings, "--detail-point", "12,0", code=1)
+                self.assertFalse(self.dest.exists())
+
+    def test_detail_point_ignores_near_transparent_rgb(self):
+        image = Image.new("RGBA", (10, 10), (200, 200, 200, 255))
+        image.paste((0, 0, 0, 255), (0, 0, 10, 2))
+        image.putpixel((9, 9), (157, 157, 157, 1))
+        self.convert(image, "--size", "1x1", "--alpha", "binary", "--detail-point", "0,0")
+        self.assertTupleEqual(tuple(self.output()[0, 0]), (200, 200, 200, 255))
+
     def test_existing_output(self):
         self.dest.mkdir()
         self.convert(reference(), code=1)
