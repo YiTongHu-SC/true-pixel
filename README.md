@@ -18,6 +18,29 @@ True Pixel 把放大过的像素画或 AI 生成的像素风图片，重建成�
 
 ![药剂师专用的 16 色色板](examples/herbalist/palette-16.png)
 
+### 同尺寸对比采样算法
+
+左图使用默认的中心加权投票，右图使用最近邻。两版均从同一张原图生成 96×96 精灵，使用相同的 16 色色板和二值透明，省略细节点修正。两版有 111 个像素不同，其中 6 个位置的透明状态不同。下方放大了同一处眼部细节。
+
+![采药师中心加权与最近邻采样对比，含脸部局部放大](examples/herbalist/sampling-comparison.png)
+
+[中心加权原生 PNG](examples/herbalist/sampling-weighted.png) · [最近邻原生 PNG](examples/herbalist/sampling-nearest.png)
+
+```sh
+python skills/true-pixel/scripts/true_pixel.py examples/herbalist/input.png out/weighted --size 96x96 --sampling weighted --alpha binary --palette examples/herbalist/palette-16.png
+python skills/true-pixel/scripts/true_pixel.py examples/herbalist/input.png out/nearest --size 96x96 --sampling nearest --alpha binary --palette examples/herbalist/palette-16.png
+```
+
+### 复现实验 001 的角色裁切
+
+要保留实验 001 静态采药师的嘴点和发梢，用二值透明去除低透明度边缘，按主体包围框缩放，再放回游戏画布。
+
+```sh
+python skills/true-pixel/scripts/true_pixel.py examples/herbalist/input.png out/herbalist-framed --size 96x96 --sprite-height 64 --bottom-margin 12 --sampling nearest --alpha binary
+```
+
+这张图裁出 438×766 的主体，缩为 37×64，左上角放在目标画布的 `(30, 20)`。输出保留原色，与实验静态精灵逐像素一致。[查看 96×96 成品](examples/herbalist/framed-96.png)
+
 ## 安装为 AI 技能
 
 把下面这句话发给支持安装 Agent Skills 的 AI 助手即可。
@@ -46,9 +69,11 @@ python skills/true-pixel/scripts/true_pixel.py examples/herbalist/input.png out/
 
 | 需求 | 参数 | 处理方式 |
 | --- | --- | --- |
+| 选择采样算法 | `--sampling weighted` 或 `--sampling nearest` | 默认按格内中心权重和透明度投票取色。最近邻复制中心附近单个源像素的 RGBA。两种算法都支持指定尺寸和自动网格。 |
 | 从放大图恢复原尺寸 | 省略 `--size` | 分别估计横纵网格的间距和起点。适合全图使用统一、水平和垂直像素网格的静态图。 |
 | 按游戏规格制作精灵 | `--size 32x48` | 按指定宽高分格取色。支持非方形画布和非整数缩放比例，目标宽高须在处理后画布的像素尺寸以内。 |
 | 原图和目标比例不同 | `--fit pad` 或 `--fit crop` | 搭配 `--size` 使用。前者居中补透明边并保留全图，后者居中裁切以填满目标。 |
+| 按角色高度排入画布 | `--sprite-height 64 --bottom-margin 12` | 用 `--size` 指定输出画布。按可见主体等比缩放，水平居中，底部默认留 0 行。默认用 Alpha > 0 定位主体，`--alpha binary` 时先按 128 二值化。网格图显示裁出的采样区域，细节点坐标以最终画布为准。 |
 | 保留半透明或制作硬边 | `--alpha preserve` 或 `--alpha binary` | 默认保留透明度。选 `binary` 时，Alpha 小于 128 的像素全透明，其余全不透明。 |
 | 保留缩小后消失的细线或小点 | `--detail-point X,Y` | 指定一个输出格，左上角为 `0,0`，可重复使用。搭配 `--size`，在该格附近试最多九个采样位置，并比较按覆盖率取色的候选。 |
 | 统一到固定色值 | `--palette palette.png` | 色板 PNG 可由 1–256 种不同的可见 RGB 颜色组成。每个可见输出像素映射到 RGB 距离最近的色板值，无抖动。透明度单独处理。 |

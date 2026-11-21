@@ -125,6 +125,27 @@ def fit_canvas(im, size, fit):
     return im.crop((left, top, left + fw, top + fh))
 
 
+def frame_sprite(im, canvas, height, bottom_margin, alpha_mode):
+    cw, ch = canvas
+    if height < 1 or bottom_margin < 0 or height + bottom_margin > ch:
+        raise ValueError("sprite height and bottom margin must fit the output canvas")
+    if cw * ch > max(im.width * im.height * 4, 16_777_216):
+        raise ValueError("padded canvas too large")
+    alpha = im.getchannel("A")
+    if alpha_mode == "binary":
+        alpha = alpha.point(lambda a: 255 if a >= 128 else 0)
+        im.putalpha(alpha)
+    box = alpha.getbbox()
+    if box is None:
+        raise ValueError("no visible sprite after applying alpha mode")
+    cropped = im.crop(box)
+    width = max(1, round(cropped.width * (height / cropped.height)))
+    if width > cw:
+        raise ValueError("scaled sprite is wider than the output canvas")
+    origin = (cw // 2 - width // 2, ch - bottom_margin - height)
+    return cropped, (width, height), origin, box
+
+
 def sample_cell(cell):
     h, w = cell.shape[:2]
     if np.all(cell == cell[0, 0]):
@@ -164,7 +185,7 @@ def detail_point(value):
     return tuple(map(int, value.split(",")))
 
 
-def refine_point(data, xs, ys, x, y, result):
+def refine_point(data, xs, ys, x, y, result, sampling):
     """Test nearby sampling positions for one artist-selected feature pixel."""
     x0, x1 = map(int, xs[x:x + 2])
     y0, y1 = map(int, ys[y:y + 2])
@@ -200,7 +221,10 @@ def refine_point(data, xs, ys, x, y, result):
             if (left, top) in seen:
                 continue
             seen.add((left, top))
-            sampled = sample_cell(data[top:top + h, left:left + w])
+            if sampling == "nearest":
+                sampled = data[top + h // 2, left + w // 2]
+            else:
+                sampled = sample_cell(data[top:top + h, left:left + w])
             offset = [left - x0, top - y0]
             if sampled[3] == 0:
                 trials.append(dict(offset=offset, rgb=None))
@@ -216,10 +240,20 @@ def refine_point(data, xs, ys, x, y, result):
                 trials=trials)
 
 
-def reconstruct(im, xs, ys, alpha_mode, palette, points=(), detail_report=None):
+def reconstruct(im, xs, ys, alpha_mode, palette, points=(), detail_report=None,
+                sampling="weighted", specified_size=None, origin=(0, 0)):
     data = np.asarray(im)
     if len(xs) == im.width + 1 and len(ys) == im.height + 1:
         result = data.copy()
+    elif sampling == "nearest":
+        if specified_size:
+            # Resize on the continuous grid, before any cell-boundary rounding.
+            result = np.array(im.resize(specified_size, Image.Resampling.NEAREST))
+        else:
+            # Include partial edge cells when the detected grid has an offset.
+            cx = (xs[:-1] + xs[1:]) // 2
+            cy = (ys[:-1] + ys[1:]) // 2
+            result = data[cy[:, None], cx]
     else:
         result = np.empty((len(ys) - 1, len(xs) - 1, 4), dtype=np.uint8)
         for row, (y0, y1) in enumerate(zip(ys, ys[1:])):
@@ -229,8 +263,13 @@ def reconstruct(im, xs, ys, alpha_mode, palette, points=(), detail_report=None):
         result[:, :, 3] = (result[:, :, 3] >= 128) * 255
     visible = result[:, :, 3] > 0
     result[~visible] = 0
-    for x, y in points:
-        detail = refine_point(data, xs, ys, x, y, result)
+    for px, py in points:
+        x, y = px - origin[0], py - origin[1]
+        if 0 <= x < result.shape[1] and 0 <= y < result.shape[0]:
+            detail = refine_point(data, xs, ys, x, y, result, sampling)
+            detail["point"] = [px, py]
+        else:
+            detail = dict(point=[px, py], before=[0, 0, 0], selected="transparent", trials=[])
         if detail_report is not None:
             detail_report.append(detail)
     if palette is not None and visible.any():
@@ -263,21 +302,32 @@ def run(args):
     original_size = im.size
     if args.fit and not args.size:
         raise ValueError("--fit requires --size")
+    if args.sprite_height is not None and not args.size:
+        raise ValueError("--sprite-height requires --size")
+    if args.bottom_margin is not None and args.sprite_height is None:
+        raise ValueError("--bottom-margin requires --sprite-height")
     if args.detail_point and not args.size:
         raise ValueError("--detail-point requires --size")
     points = list(dict.fromkeys(args.detail_point))
     if any(x >= args.size[0] or y >= args.size[1] for x, y in points):
         raise ValueError("detail point outside target canvas")
-    report = dict(input_size=original_size, alpha=args.alpha, fit=args.fit,
+    report = dict(input_size=original_size, sampling=args.sampling, alpha=args.alpha, fit=args.fit,
                   palette=args.palette.name if args.palette else None)
     issues = []
+    origin = (0, 0)
+    sample_size = args.size
     if args.size:
-        im = fit_canvas(im, args.size, args.fit)
-        if any(t > s for t, s in zip(args.size, im.size)):
+        if args.sprite_height is None:
+            im = fit_canvas(im, args.size, args.fit)
+        else:
+            im, sample_size, origin, box = frame_sprite(
+                im, args.size, args.sprite_height, args.bottom_margin or 0, args.alpha)
+            report["sprite"] = dict(source_box=box, size=sample_size, origin=origin)
+        if any(t > s for t, s in zip(sample_size, im.size)):
             raise ValueError("target exceeds available source pixels")
-        axes = [[dict(pitch=n / t, offset=0)] for n, t in zip(im.size, args.size)]
+        axes = [[dict(pitch=n / t, offset=0)] for n, t in zip(im.size, sample_size)]
         bounds = [np.rint(np.linspace(0, n, t + 1)).astype(int)
-                  for n, t in zip(im.size, args.size)]
+                  for n, t in zip(im.size, sample_size)]
     else:
         axes, issues = detect(im)
         bounds = [boundaries(n, options[0]) if options else np.array([0, n])
@@ -285,7 +335,7 @@ def run(args):
     xs, ys = bounds
     inferred = all(axes)
     report.update(mode="specified" if args.size else "auto",
-                  canvas_size=im.size, native_size=[len(xs)-1, len(ys)-1] if inferred else None,
+                  canvas_size=im.size, native_size=args.size or ([len(xs)-1, len(ys)-1] if inferred else None),
                   x_candidates=axes[0], y_candidates=axes[1],
                   status="review" if issues else "ok", issues=issues)
     palette = read_palette(args.palette) if args.palette else None
@@ -304,7 +354,12 @@ def run(args):
         overlay.save(dest / "grid.png")
         if inferred:
             details = []
-            native = reconstruct(im, xs, ys, args.alpha, palette, points, details)
+            native = reconstruct(im, xs, ys, args.alpha, palette, points, details,
+                                 args.sampling, sample_size, origin)
+            if args.sprite_height is not None:
+                canvas = Image.new("RGBA", args.size)
+                canvas.paste(native, origin)
+                native = canvas
             if details:
                 for item in details:
                     item["output"] = list(native.getpixel(tuple(item["point"])))
@@ -324,9 +379,16 @@ def main():
     p.add_argument("input", type=Path)
     p.add_argument("output", type=Path, help="new result directory")
     p.add_argument("--size", type=native_size)
+    p.add_argument("--sampling", choices=["weighted", "nearest"], default="weighted",
+                   help="center-weighted color voting (default) or nearest-neighbor sampling")
     p.add_argument("--detail-point", type=detail_point, action="append", default=[],
                    metavar="X,Y", help="refine RGB at one target pixel; repeat for more points")
-    p.add_argument("--fit", choices=["crop", "pad"])
+    framing = p.add_mutually_exclusive_group()
+    framing.add_argument("--fit", choices=["crop", "pad"])
+    framing.add_argument("--sprite-height", type=int, metavar="PX",
+                         help="crop to visible pixels and scale to this height on the --size canvas")
+    p.add_argument("--bottom-margin", type=int, metavar="PX",
+                   help="transparent rows below the centered sprite (default: 0)")
     p.add_argument("--alpha", choices=["preserve", "binary"], default="preserve")
     p.add_argument("--palette", type=Path, help="PNG swatch with up to 256 visible colors")
     a = p.parse_args()

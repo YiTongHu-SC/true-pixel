@@ -43,8 +43,50 @@ class Conversion(unittest.TestCase):
     def test_auto_exact(self):
         orig = reference()
         report = self.convert(orig.resize((192, 144), NEAREST))
+        self.assertEqual(report["sampling"], "weighted")
         self.assertEqual(report["native_size"], [24, 18])
         np.testing.assert_array_equal(self.output(), np.asarray(orig))
+
+    def test_nearest_fractional_size(self):
+        orig = reference()
+        report = self.convert(orig, "--size", "16x12", "--sampling", "nearest")
+        self.assertEqual(report["sampling"], "nearest")
+        np.testing.assert_array_equal(self.output(), np.asarray(orig.resize((16, 12), NEAREST)))
+
+    def test_nearest_detected_offset(self):
+        orig = reference()
+        source = orig.resize((192, 144), NEAREST).crop((3, 5, 192, 144))
+        self.convert(source, "--sampling", "nearest")
+        np.testing.assert_array_equal(self.output(), np.asarray(orig))
+
+    def test_exp001_sprite_frame(self):
+        example = CLI.parents[3] / "examples/herbalist"
+        with Image.open(example / "input.png") as image:
+            report = self.convert(image, "--size", "96x96", "--sprite-height", "64",
+                                  "--bottom-margin", "12", "--sampling", "nearest", "--alpha", "binary")
+        self.assertEqual(report["sprite"], dict(source_box=[261, 148, 699, 914],
+                                               size=[37, 64], origin=[30, 20]))
+        self.assertEqual(report["native_size"], [96, 96])
+        with Image.open(example / "framed-96.png") as expected:
+            np.testing.assert_array_equal(self.output(), np.asarray(expected))
+
+    def test_frame_preserves_alpha_and_canvas_detail_coordinates(self):
+        im = Image.new("RGBA", (12, 12))
+        im.paste((20, 80, 140, 100), (2, 2, 8, 10))
+        report = self.convert(im, "--size", "9x8", "--sprite-height", "4",
+                              "--detail-point", "4,5", "--detail-point", "0,0")
+        self.assertEqual(report["sprite"]["origin"], [3, 4])
+        expected = np.zeros((8, 9, 4), dtype=np.uint8)
+        expected[4:, 3:6] = [20, 80, 140, 100]
+        np.testing.assert_array_equal(self.output(), expected)
+        self.assertEqual([d["point"] for d in report["detail_points"]], [[4, 5], [0, 0]])
+        self.assertEqual(report["detail_points"][1]["selected"], "transparent")
+
+    def test_frame_rejects_empty_or_clipped_sprite(self):
+        self.convert(Image.new("RGBA", (12, 12)), "--size", "8x8", "--sprite-height", "4", code=1)
+        self.convert(Image.new("RGB", (12, 4)), "--size", "8x8", "--sprite-height", "4", code=1)
+        self.convert(reference(), "--size", "8x8", "--sprite-height", "4", "--bottom-margin", "5", code=1)
+        self.assertFalse(self.dest.exists())
 
     def test_fractional(self):
         orig = reference()

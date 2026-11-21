@@ -10,11 +10,17 @@ description: 将 ImageGen 等工具生成的像素风图片重建为原生分辨
 ```text
 python scripts/true_pixel.py INPUT.png NEW_OUTPUT_DIR
 python scripts/true_pixel.py INPUT.png NEW_OUTPUT_DIR --size 32x32 --alpha binary
+python scripts/true_pixel.py INPUT.png NEW_OUTPUT_DIR --size 96x96 --sampling nearest
+python scripts/true_pixel.py INPUT.png NEW_OUTPUT_DIR --size 96x96 --sprite-height 64 --bottom-margin 12 --sampling nearest --alpha binary
 ```
 
 有明确素材尺寸时用 `--size 宽x高`，保留整张画布和留白。比例冲突时按素材用途选择居中裁切 `--fit crop` 或透明补边 `--fit pad`。硬边图标可用 `--alpha binary`，默认保留透明度。可用 `--palette 色卡.png` 映射至色卡可见颜色，最多 256 色，无抖动。
 
+按角色实际高度制作静态精灵时，在 `--size` 后加 `--sprite-height 像素数`，工具裁出可见像素的包围框，按比例缩到指定高度，再水平居中排入目标画布。`--bottom-margin` 设置底部留白，默认 0 行。默认按非零 Alpha 裁切；使用 `--alpha binary` 会先按 128 二值化再裁切。复现实验 001 采药师用上面最后一条命令并保留源色。网格图对应裁切区域，报告的 `sprite` 记录源图裁框、缩放尺寸和目标画布左上角坐标。
+
 如果一个小笔触在指定尺寸的默认成品中消失，先对照原图定位到要修正的输出格。用 `--detail-point X,Y` 标记该格，可重复指定。坐标从目标画布左上角的 `0,0` 起算；裁切或补边后，以最终输出为准。仅需调整眼线和嘴角时各标一格。工具试中心和周边最多九个采样位置，另比较接近该格可见像素平均色的源色，用选中的 RGB 和原格透明度输出；如指定色板，再做色板映射。用 `report.json` 的 `detail_points` 查看各位置相对中心的源像素偏移、入选候选和最终 RGBA，同时检查原生 PNG 和放大预览。
+
+用 `--sampling weighted`（默认）在格内按中心权重投票取色，或用 `--sampling nearest` 取中心附近单个源像素的 RGBA。指定尺寸时，最近邻使用 Pillow 的最近邻缩放；自动网格下取每个检测格的中心像素，偶数宽高时取靠右、靠下的一侧。两种算法都支持透明度、细节点和色板设置。比较采样效果时使用相同设置并省略细节点，报告的 `sampling` 字段记录算法。
 
 未知尺寸时先自动识别。退出码 0 表示已输出 `native.png`；2 表示需要复核，读取 `report.json` 的 issues、两轴格距、偏移和候选，查看 `grid.png`。两轴都有候选时还会生成 `candidate.png` 和整数倍 `preview.png`。无法定位网格时用用户给出的规格；若需估算，展示预览并标明重建尺寸的依据。退出码 1 表示参数或文件错误。
 
