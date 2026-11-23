@@ -1,8 +1,10 @@
 # True Pixel · 真像素重建
 
-True Pixel 把放大过的像素画或 AI 生成的像素风图片，重建成可以直接用在游戏里的小尺寸透明 PNG。你可以指定角色的宽高、保留半透明边缘，或让所有可见像素只使用项目色板中的颜色。转换在本机完成，需要 Python 3.10+、Pillow 和 NumPy。
+True Pixel 把放大过的像素画或 AI 生成的像素风图片，重建成适合游戏素材制作的小尺寸透明 PNG。你可以指定角色的宽高、保留半透明边缘，或让所有可见像素只使用项目色板中的颜色。转换在本机完成，需要 Python 3.10+、Pillow 和 NumPy。
 
 ## 示例 · 银发药剂师
+
+> 示例用于展示和对照，不随软件授予商用或再分发许可。详见[授权说明](#授权)。
 
 这位药剂师来自 `godot-lab` 实验 001。两种尺寸共用一张从原图选出的 **16 色色板**。左边是 1024×1024 原图，中间是 96×96 精灵，右边是 192×192 精灵，三列等大显示。
 
@@ -87,3 +89,13 @@ python skills/true-pixel/scripts/true_pixel.py examples/herbalist/input.png out/
 | `1` | 输入或输出处理失败 | 按终端错误检查图片、色板、宽高比和输出目录。 |
 
 AI 助手可读取[技能入口](skills/true-pixel/SKILL.md)获取调用约定。另有[提灯示例](examples/lantern)，可对照同一张图在 32×32 和 48×48 下的高光差异。仓库根目录运行 `python -m unittest discover -s tests -v` 可执行回归测试。
+
+## 授权
+
+True Pixel 的自有程序代码、AI Skill（包括 `SKILL.md`、脚本和依赖清单）、测试代码及项目文档正文，采用 [MIT License](LICENSE)。你可以将工具用于个人或商业项目，也可以修改和再分发；分发工具或其实质部分时，请保留版权和许可声明。单独复制或分发 Skill 目录时，请一并保留[其中的 LICENSE](skills/true-pixel/LICENSE)。
+
+`examples/` 下的内容（包括药剂师和提灯的输入、输出、色板、对比图、提示词和报告）不适用本项目的 MIT 许可。本仓库未就这些示例另行授予商用或再分发许可；如需使用，请确认你已取得相应权利。
+
+True Pixel 的 MIT 许可不会自动套用到你处理的图片，也不授予输入图、色板或其转换结果中的第三方权利。如果你对输入及输出所含素材拥有相应使用权，可以将生成的 PNG 用于商业项目。仅使用工具生成素材，不要求你的游戏开源。
+
+[NumPy](https://numpy.org/doc/stable/license.html) 与 [Pillow](https://pillow.readthedocs.io/en/stable/about.html#license) 适用各自的许可证。如果你把依赖一并打包分发，请保留所用版本要求的许可证和声明。
